@@ -153,7 +153,7 @@ def main():
 
     # ----- Step 1: Load dataset -----
     print("\n[1/5] Loading BANKING77 dataset from HuggingFace...")
-    dataset = load_dataset("PolyAI/banking77")
+    dataset = load_dataset("PolyAI/banking77", trust_remote_code=True)
     train_data = dataset["train"]
     test_data = dataset["test"]
 
