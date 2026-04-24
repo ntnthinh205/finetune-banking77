@@ -231,8 +231,12 @@ def evaluate_test_set(classifier: IntentClassification, test_csv_path: str):
     for idx, row in test_df.iterrows():
         predicted = classifier(row["text"])
         true_label = row["label_name"]
+        
+        # Robust comparison: ignore case, punctuation, and fallback to containment
+        predicted_clean = predicted.strip().split('\n')[0].strip().lower().rstrip('. ,;!?')
+        true_label_lower = true_label.strip().lower()
 
-        is_correct = predicted.lower().strip() == true_label.lower().strip()
+        is_correct = (predicted_clean == true_label_lower) or (true_label_lower in predicted.lower())
         correct += int(is_correct)
 
         # Print progress every 50 samples

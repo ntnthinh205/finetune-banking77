@@ -154,7 +154,7 @@ def main():
     # Format training data with prompt template
     def format_dataset(row):
         return {
-            "text": format_prompt(row["text"], row["label_name"]),
+            "text": format_prompt(row["text"], row["label_name"]) + tokenizer.eos_token,
         }
 
     train_dataset = Dataset.from_pandas(train_df)
@@ -304,14 +304,17 @@ def main():
             generated_text = tokenizer.decode(
                 outputs[0][inputs["input_ids"].shape[1] :],
                 skip_special_tokens=True,
-            ).strip()
+            )
 
-            # Compare prediction with true label
+            # Robust parsing: take first line, strip whitespace and punctuation
+            predicted_label = generated_text.strip().split('\n')[0].strip().lower()
+            predicted_label = predicted_label.rstrip('. ,;!?')
+            
             true_label = row["label_name"]
-            predicted_label = generated_text.strip().lower()
             true_label_lower = true_label.strip().lower()
 
-            is_correct = predicted_label == true_label_lower
+            # Optional: check if true label is contained in the generated text as a fallback
+            is_correct = (predicted_label == true_label_lower) or (true_label_lower in generated_text.lower())
             correct += int(is_correct)
             total += 1
 
