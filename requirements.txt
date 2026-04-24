@@ -1,0 +1,19 @@
+# ==============================================================================
+# Requirements for BANKING77 Intent Detection with Unsloth
+# ==============================================================================
+# Install with: pip install -r requirements.txt
+# For Colab/Kaggle, use: pip install unsloth
+# ==============================================================================
+
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+trl>=0.15.0
+transformers>=4.46.0
+datasets>=2.16.0
+peft>=0.13.0
+bitsandbytes>=0.44.0
+accelerate>=0.34.0
+xformers
+pyyaml>=6.0
+scikit-learn>=1.3.0
+pandas>=2.0.0
+torch>=2.1.0

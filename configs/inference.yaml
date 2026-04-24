@@ -1,0 +1,15 @@
+# ==============================================================================
+# Inference Configuration for BANKING77 Intent Detection
+# ==============================================================================
+
+# Path to the saved model checkpoint (after fine-tuning)
+model_checkpoint: "checkpoints/banking77-intent"
+
+# Maximum sequence length for tokenizer
+max_seq_length: 512
+
+# Load model in 4-bit quantization
+load_in_4bit: true
+
+# Path to label mapping file (generated during preprocessing)
+label_map_path: "sample_data/label_map.json"

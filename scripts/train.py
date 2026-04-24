@@ -1,0 +1,382 @@
+"""
+train.py - Fine-tuning Intent Detection Model with Unsloth
+==========================================================
+This script fine-tunes a language model for banking intent classification
+using the Unsloth library for optimized LoRA training.
+
+The approach frames classification as a text generation task:
+  Input:  "Classify the banking intent: <message>"
+  Output: "<intent_label>"
+
+Usage:
+    python scripts/train.py --config configs/train.yaml
+
+Reference:
+    - Unsloth official guide: https://docs.unsloth.ai
+    - BANKING77 dataset: https://huggingface.co/datasets/PolyAI/banking77
+"""
+
+import os
+import sys
+import json
+import argparse
+import yaml
+import torch
+import pandas as pd
+from datasets import Dataset
+
+
+def load_config(config_path: str) -> dict:
+    """Load YAML configuration file."""
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+# ==============================================================================
+# Prompt Template
+# ==============================================================================
+PROMPT_TEMPLATE = """### Instruction:
+Classify the following banking customer message into the correct intent category.
+Only respond with the intent label, nothing else.
+
+### Message:
+{}
+
+### Intent:
+{}"""
+
+
+def format_prompt(text: str, label_name: str = "", for_inference: bool = False) -> str:
+    """
+    Format a sample into the prompt template.
+
+    Args:
+        text: Customer message text
+        label_name: Intent label name (empty for inference)
+        for_inference: If True, don't include the label (for generation)
+
+    Returns:
+        Formatted prompt string
+    """
+    if for_inference:
+        # For inference: prompt without the answer
+        return PROMPT_TEMPLATE.split("### Intent:\n")[0] + "### Intent:\n"
+    return PROMPT_TEMPLATE.format(text, label_name)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Fine-tune intent detection model with Unsloth"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/train.yaml",
+        help="Path to training config YAML",
+    )
+    args = parser.parse_args()
+
+    # Load configuration
+    config = load_config(args.config)
+    model_config = config["model"]
+    lora_config = config["lora"]
+    train_config = config["training"]
+    data_config = config["data"]
+    output_config = config["output"]
+
+    print("=" * 60)
+    print("BANKING77 Intent Detection - Fine-tuning with Unsloth")
+    print("=" * 60)
+
+    # =========================================================================
+    # Step 1: Load Model with Unsloth
+    # =========================================================================
+    print("\n[1/6] Loading model with Unsloth...")
+
+    from unsloth import FastLanguageModel
+
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=model_config["name"],
+        max_seq_length=model_config["max_seq_length"],
+        load_in_4bit=model_config["load_in_4bit"],
+        dtype=None,  # Auto-detect: float16 for T4, bfloat16 for Ampere+
+    )
+
+    print(f"   Model: {model_config['name']}")
+    print(f"   Max seq length: {model_config['max_seq_length']}")
+    print(f"   Quantization: {'4-bit' if model_config['load_in_4bit'] else 'None'}")
+
+    # =========================================================================
+    # Step 2: Add LoRA Adapters
+    # =========================================================================
+    print("\n[2/6] Adding LoRA adapters...")
+
+    model = FastLanguageModel.get_peft_model(
+        model,
+        r=lora_config["r"],
+        lora_alpha=lora_config["lora_alpha"],
+        lora_dropout=lora_config["lora_dropout"],
+        target_modules=lora_config["target_modules"],
+        use_gradient_checkpointing=lora_config["use_gradient_checkpointing"],
+        use_rslora=lora_config["use_rslora"],
+        loftq_config=lora_config["loftq_config"],
+        random_state=train_config["seed"],
+    )
+
+    # Print trainable parameters
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"   LoRA rank (r): {lora_config['r']}")
+    print(f"   LoRA alpha: {lora_config['lora_alpha']}")
+    print(f"   Target modules: {lora_config['target_modules']}")
+    print(f"   Trainable params: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
+
+    # =========================================================================
+    # Step 3: Load and Format Dataset
+    # =========================================================================
+    print("\n[3/6] Loading and formatting dataset...")
+
+    train_df = pd.read_csv(data_config["train_path"])
+    test_df = pd.read_csv(data_config["test_path"])
+
+    # Load label mapping
+    label_map_path = os.path.join(
+        os.path.dirname(data_config["train_path"]), "label_map.json"
+    )
+    with open(label_map_path, "r") as f:
+        label_map = json.load(f)
+
+    num_labels = label_map["num_labels"]
+    print(f"   Training samples: {len(train_df)}")
+    print(f"   Test samples: {len(test_df)}")
+    print(f"   Number of intents: {num_labels}")
+
+    # Format training data with prompt template
+    def format_dataset(row):
+        return {
+            "text": format_prompt(row["text"], row["label_name"]),
+        }
+
+    train_dataset = Dataset.from_pandas(train_df)
+    train_dataset = train_dataset.map(
+        format_dataset,
+        remove_columns=train_dataset.column_names,
+    )
+
+    # Show example
+    print("\n   Example formatted prompt:")
+    print("   " + "-" * 50)
+    example = train_dataset[0]["text"]
+    for line in example.split("\n"):
+        print(f"   {line}")
+    print("   " + "-" * 50)
+
+    # =========================================================================
+    # Step 4: Configure Trainer
+    # =========================================================================
+    print("\n[4/6] Configuring SFTTrainer...")
+
+    from trl import SFTTrainer
+    from transformers import TrainingArguments
+
+    # Create output directories
+    os.makedirs(output_config["checkpoint_dir"], exist_ok=True)
+    os.makedirs(output_config.get("log_dir", "logs"), exist_ok=True)
+
+    training_args = TrainingArguments(
+        output_dir=output_config["checkpoint_dir"],
+        per_device_train_batch_size=train_config["per_device_train_batch_size"],
+        gradient_accumulation_steps=train_config["gradient_accumulation_steps"],
+        num_train_epochs=train_config["num_train_epochs"],
+        learning_rate=train_config["learning_rate"],
+        optim=train_config["optimizer"],
+        weight_decay=train_config["weight_decay"],
+        warmup_steps=train_config["warmup_steps"],
+        lr_scheduler_type=train_config["lr_scheduler_type"],
+        fp16=train_config["fp16"],
+        bf16=train_config["bf16"],
+        logging_steps=train_config["logging_steps"],
+        save_strategy=train_config["save_strategy"],
+        seed=train_config["seed"],
+        group_by_length=train_config["group_by_length"],
+        max_grad_norm=train_config["max_grad_norm"],
+        logging_dir=output_config.get("log_dir", "logs"),
+        report_to="none",
+    )
+
+    trainer = SFTTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        train_dataset=train_dataset,
+        dataset_text_field="text",
+        max_seq_length=model_config["max_seq_length"],
+        args=training_args,
+    )
+
+    # Print training info
+    print(f"   Batch size: {train_config['per_device_train_batch_size']}")
+    print(f"   Gradient accumulation: {train_config['gradient_accumulation_steps']}")
+    print(f"   Effective batch size: {train_config['per_device_train_batch_size'] * train_config['gradient_accumulation_steps']}")
+    print(f"   Epochs: {train_config['num_train_epochs']}")
+    print(f"   Learning rate: {train_config['learning_rate']}")
+    print(f"   Optimizer: {train_config['optimizer']}")
+
+    # Show GPU memory before training
+    if torch.cuda.is_available():
+        gpu_stats = torch.cuda.get_device_properties(0)
+        start_gpu_memory = round(
+            torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3
+        )
+        max_memory = round(gpu_stats.total_mem / 1024 / 1024 / 1024, 3)
+        print(f"\n   GPU: {gpu_stats.name}")
+        print(f"   GPU Memory: {start_gpu_memory} GB / {max_memory} GB")
+
+    # =========================================================================
+    # Step 5: Train
+    # =========================================================================
+    print("\n[5/6] Starting training...")
+    print("=" * 60)
+
+    trainer_stats = trainer.train()
+
+    # Print training stats
+    print("\n" + "=" * 60)
+    print("Training Complete!")
+    print("=" * 60)
+    print(f"   Training time: {trainer_stats.metrics['train_runtime']:.1f} seconds")
+    print(f"   Training time: {trainer_stats.metrics['train_runtime'] / 60:.1f} minutes")
+    print(f"   Training loss: {trainer_stats.metrics.get('train_loss', 'N/A')}")
+
+    if torch.cuda.is_available():
+        used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
+        used_memory_for_lora = round(used_memory - start_gpu_memory, 3)
+        print(f"   Peak GPU memory: {used_memory} GB")
+        print(f"   GPU memory for training: {used_memory_for_lora} GB")
+
+    # =========================================================================
+    # Step 6: Evaluate on Test Set and Save Model
+    # =========================================================================
+    print("\n[6/6] Evaluating on test set and saving model...")
+
+    # Switch to inference mode
+    FastLanguageModel.for_inference(model)
+
+    # Evaluate on test set
+    correct = 0
+    total = 0
+    predictions = []
+
+    # Process in batches
+    batch_size = 16
+    id2label = label_map["id2label"]
+
+    inference_prompt_base = PROMPT_TEMPLATE.split("### Intent:\n")[0] + "### Intent:\n"
+
+    print("   Running evaluation...")
+    for i in range(0, len(test_df), batch_size):
+        batch = test_df.iloc[i : i + batch_size]
+
+        for _, row in batch.iterrows():
+            prompt = inference_prompt_base.format(row["text"])
+
+            inputs = tokenizer(
+                prompt,
+                return_tensors="pt",
+                truncation=True,
+                max_length=model_config["max_seq_length"],
+            ).to(model.device)
+
+            with torch.no_grad():
+                outputs = model.generate(
+                    **inputs,
+                    max_new_tokens=32,
+                    do_sample=False,
+                    temperature=1.0,
+                    use_cache=True,
+                )
+
+            # Decode only the generated part
+            generated_text = tokenizer.decode(
+                outputs[0][inputs["input_ids"].shape[1] :],
+                skip_special_tokens=True,
+            ).strip()
+
+            # Compare prediction with true label
+            true_label = row["label_name"]
+            predicted_label = generated_text.strip().lower()
+            true_label_lower = true_label.strip().lower()
+
+            is_correct = predicted_label == true_label_lower
+            correct += int(is_correct)
+            total += 1
+
+            predictions.append(
+                {
+                    "text": row["text"],
+                    "true_label": true_label,
+                    "predicted_label": generated_text.strip(),
+                    "correct": is_correct,
+                }
+            )
+
+        # Progress update
+        if (i // batch_size + 1) % 5 == 0:
+            print(f"   Processed {min(i + batch_size, len(test_df))}/{len(test_df)} samples...")
+
+    accuracy = 100 * correct / total
+    print(f"\n   ✅ Test Accuracy: {accuracy:.2f}% ({correct}/{total})")
+
+    # Save predictions
+    pred_df = pd.DataFrame(predictions)
+    pred_path = os.path.join(output_config["checkpoint_dir"], "test_predictions.csv")
+    pred_df.to_csv(pred_path, index=False)
+    print(f"   Saved predictions to: {pred_path}")
+
+    # Save model
+    print("\n   Saving model checkpoint...")
+    model.save_pretrained(output_config["checkpoint_dir"])
+    tokenizer.save_pretrained(output_config["checkpoint_dir"])
+
+    # Save label map to checkpoint directory too
+    checkpoint_label_map_path = os.path.join(
+        output_config["checkpoint_dir"], "label_map.json"
+    )
+    with open(checkpoint_label_map_path, "w") as f:
+        json.dump(label_map, f, indent=2)
+
+    # Save training summary
+    summary = {
+        "model": model_config["name"],
+        "num_intents": num_labels,
+        "train_samples": len(train_df),
+        "test_samples": len(test_df),
+        "test_accuracy": accuracy,
+        "training_time_seconds": trainer_stats.metrics["train_runtime"],
+        "training_loss": trainer_stats.metrics.get("train_loss", None),
+        "hyperparameters": {
+            "lora_r": lora_config["r"],
+            "lora_alpha": lora_config["lora_alpha"],
+            "batch_size": train_config["per_device_train_batch_size"],
+            "gradient_accumulation": train_config["gradient_accumulation_steps"],
+            "learning_rate": train_config["learning_rate"],
+            "epochs": train_config["num_train_epochs"],
+            "optimizer": train_config["optimizer"],
+            "max_seq_length": model_config["max_seq_length"],
+        },
+    }
+    summary_path = os.path.join(output_config["checkpoint_dir"], "training_summary.json")
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+
+    print(f"   Saved checkpoint to: {output_config['checkpoint_dir']}")
+    print(f"   Saved training summary to: {summary_path}")
+
+    print("\n" + "=" * 60)
+    print("🎉 Fine-tuning complete!")
+    print(f"   Model saved at: {output_config['checkpoint_dir']}")
+    print(f"   Test Accuracy: {accuracy:.2f}%")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
