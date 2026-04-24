@@ -198,7 +198,6 @@ def main():
         logging_steps=train_config["logging_steps"],
         save_strategy=train_config["save_strategy"],
         seed=train_config["seed"],
-        group_by_length=train_config["group_by_length"],
         max_grad_norm=train_config["max_grad_norm"],
         logging_dir=output_config.get("log_dir", "logs"),
         report_to="none",
