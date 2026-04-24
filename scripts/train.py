@@ -226,7 +226,7 @@ def main():
         start_gpu_memory = round(
             torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3
         )
-        max_memory = round(gpu_stats.total_mem / 1024 / 1024 / 1024, 3)
+        max_memory = round(gpu_stats.total_memory / 1024 / 1024 / 1024, 3)
         print(f"\n   GPU: {gpu_stats.name}")
         print(f"   GPU Memory: {start_gpu_memory} GB / {max_memory} GB")
 
