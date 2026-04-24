@@ -130,6 +130,12 @@ class IntentClassification:
             max_length=self.max_seq_length,
         ).to(self.device)
 
+        # Suppress warnings
+        import transformers
+        import warnings
+        transformers.logging.set_verbosity_error()
+        warnings.filterwarnings("ignore")
+
         # Generate
         with torch.no_grad():
             outputs = self.model.generate(

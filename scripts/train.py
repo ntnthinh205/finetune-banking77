@@ -259,6 +259,12 @@ def main():
 
     # Switch to inference mode
     FastLanguageModel.for_inference(model)
+    
+    # Mute useless transformers warnings during generation
+    import transformers
+    import warnings
+    transformers.logging.set_verbosity_error()
+    warnings.filterwarnings("ignore")
 
     # Evaluate on test set
     correct = 0
