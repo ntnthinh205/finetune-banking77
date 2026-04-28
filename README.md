@@ -130,7 +130,27 @@ card_arrival
 ## 🔮 Suy luận (Dự đoán)
 
 ### Sử dụng Class Python trực tiếp
+```python
+class IntentClassification:
+    def __init__(self, model_path):
+        """
+        Nạp cấu hình, tokenizer và checkpoint của mô hình LLM.
+        """
+        pass
 
+    def __call__(self, message):
+        """
+        Dự đoán nhãn intent cho một câu tin nhắn của khách hàng.
+
+        Args:
+            message: Chuỗi tin nhắn ngân hàng
+        Returns:
+            predicted_label: Chuỗi chứa nhãn intent (Ví dụ: 'activate_my_card')
+        """
+        return predicted_label
+```
+
+#### Ví dụ
 ```python
 from scripts.inference import IntentClassification
 
@@ -187,28 +207,6 @@ Input message: I just noticed my wallet is missing and my physical card was insi
 Predicted intent: lost_or_stolen_card
 Raw model output: lost_or_stolen_card
 Valid label: True
-```
-
-### Giao diện Class Inference
-
-```python
-class IntentClassification:
-    def __init__(self, model_path):
-        """
-        Nạp cấu hình, tokenizer và checkpoint của mô hình LLM.
-        """
-        pass
-
-    def __call__(self, message):
-        """
-        Dự đoán nhãn intent cho một câu tin nhắn của khách hàng.
-
-        Args:
-            message: Chuỗi tin nhắn ngân hàng
-        Returns:
-            predicted_label: Chuỗi chứa nhãn intent (Ví dụ: 'activate_my_card')
-        """
-        return predicted_label
 ```
 
 ## 📊 Kết quả
