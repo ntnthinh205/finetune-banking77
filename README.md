@@ -1,103 +1,103 @@
-# Banking Intent Detection with Unsloth
+# Phân loại Ý định Ngân hàng (Banking Intent Detection) với Unsloth
 
-Fine-tuning a language model for intent detection on the **BANKING77** dataset using **Unsloth** with LoRA.
+Dự án tinh chỉnh (fine-tune) mô hình ngôn ngữ lớn cho bài toán phân loại ý định trên bộ dữ liệu **BANKING77** sử dụng thư viện **Unsloth** kết hợp với kỹ thuật LoRA.
 
-## 📋 Project Overview
+## 📋 Tổng quan Dự án
 
-This project implements a banking intent classification system that can predict **30 intent categories** from customer messages. The model is fine-tuned using the **Unsloth** library with **LoRA (Low-Rank Adaptation)** for efficient training on limited GPU resources.
+Dự án này triển khai một hệ thống phân loại ý định trong lĩnh vực ngân hàng, có khả năng dự đoán **30 loại ý định** từ tin nhắn của khách hàng. Mô hình được fine-tune bằng thư viện **Unsloth** kết hợp với **LoRA (Low-Rank Adaptation)** giúp huấn luyện cực kỳ hiệu quả trên các hệ thống có giới hạn về phần cứng GPU.
 
-### Key Features
+### Các Tính năng chính
 
-- **Model**: Qwen2.5-1.5B-Instruct (4-bit quantized)
-- **Dataset**: BANKING77 (subset of 30 intents, ~5,000 samples)
-- **Training**: LoRA fine-tuning with Unsloth + SFTTrainer
-- **Approach**: Generative classification (LLM outputs intent label as text)
+- **Mô hình (Model)**: Qwen2.5-1.5B-Instruct (được lượng tử hóa 4-bit)
+- **Tập dữ liệu**: BANKING77 (chọn ngẫu nhiên 30 intent, ~5.000 mẫu văn bản)
+- **Huấn luyện**: Tinh chỉnh LoRA với Unsloth + SFTTrainer
+- **Cách tiếp cận**: Phân loại theo hướng sinh văn bản (Generative classification - LLM sẽ viết ra trực tiếp tên nhãn intent)
 
-## 📁 Project Structure
+## 📁 Cấu trúc Thư mục
 
-```
+```text
 banking-intent-unsloth/
 ├── scripts/
-│   ├── preprocess_data.py    # Data preprocessing pipeline
-│   ├── train.py              # Model fine-tuning with Unsloth
-│   └── inference.py          # Standalone inference class
+│   ├── preprocess_data.py    # Pipeline tiền xử lý dữ liệu
+│   ├── train.py              # Huấn luyện mô hình với Unsloth
+│   └── inference.py          # Class độc lập dùng để chạy suy luận (dự đoán)
 ├── configs/
-│   ├── train.yaml            # Training hyperparameters
-│   └── inference.yaml        # Inference configuration
+│   ├── train.yaml            # Cấu hình siêu tham số để huấn luyện
+│   └── inference.yaml        # Cấu hình lúc dự đoán
 ├── sample_data/
-│   ├── train.csv             # Training data (generated)
-│   ├── test.csv              # Test data (generated)
-│   └── label_map.json        # Label ID ↔ name mapping
-├── checkpoints/              # Saved model (generated)
-├── train.sh                  # Training shell script
-├── inference.sh              # Inference shell script
-├── requirements.txt          # Python dependencies
-└── README.md                 # This file
+│   ├── train.csv             # Dữ liệu huấn luyện (tạo tự động)
+│   ├── test.csv              # Dữ liệu kiểm tra (tạo tự động)
+│   └── label_map.json        # File ánh xạ ID và tên Intent
+├── checkpoints/              # Thư mục lưu mô hình sau khi train
+├── train.sh                  # File shell để tự động hóa quá trình train
+├── inference.sh              # File shell để chạy thử các chế độ dự đoán
+├── requirements.txt          # Các thư viện Python cần thiết
+└── README.md                 # File bạn đang đọc
 ```
 
-## 🚀 Setup & Installation
+## 🚀 Cài đặt & Khởi chạy
 
-### Prerequisites
+### Yêu cầu hệ thống
 
-- **Python** 3.9+
-- **GPU**: NVIDIA GPU with at least 8GB VRAM (Google Colab T4 or better)
-- **Platform**: Google Colab (recommended), Kaggle, or local machine with NVIDIA GPU
+- **Python**: 3.9+
+- **GPU**: NVIDIA GPU với ít nhất 8GB VRAM (Khuyến nghị dùng Google Colab T4 trở lên)
+- **Nền tảng**: Google Colab (được khuyên dùng), Kaggle, hoặc máy tính cá nhân có GPU NVIDIA
 
-### Step 1: Clone the Repository
+### Bước 1: Clone Repository
 
 ```bash
 git clone https://github.com/<YOUR_USERNAME>/banking-intent-unsloth.git
 cd banking-intent-unsloth
 ```
 
-### Step 2: Install Dependencies
+### Bước 2: Cài đặt Thư viện
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> **For Google Colab**, run the following in the first cell:
+> **Dành riêng cho Google Colab**, hãy chạy dòng lệnh sau ở ô code đầu tiên:
 > ```python
 > !pip install unsloth
 > ```
 
-## 📦 Data Preparation
+## 📦 Chuẩn bị Dữ liệu
 
-### Download and Preprocess
+### Tải và Tiền xử lý
 
 ```bash
 python scripts/preprocess_data.py --config configs/train.yaml
 ```
 
-This will:
-1. Download the BANKING77 dataset from HuggingFace
-2. Sample 30 intents (out of 77) for manageable training
-3. Normalize text data
-4. Split into 80% train / 20% test
-5. Save to `sample_data/train.csv` and `sample_data/test.csv`
+Lệnh này sẽ thực hiện các việc:
+1. Tải bộ dữ liệu BANKING77 từ HuggingFace
+2. Rút gọn lấy ngẫu nhiên 30 ý định (trong tổng số 77) để dễ quản lý thời gian huấn luyện
+3. Chuẩn hóa dữ liệu văn bản
+4. Chia tập dữ liệu thành 80% train / 20% test
+5. Lưu kết quả vào `sample_data/train.csv` và `sample_data/test.csv`
 
-### Dataset Statistics
+### Thống kê Dữ liệu
 
-| Split | Samples | Intents |
+| Tập (Split) | Số lượng mẫu | Số lượng Intent |
 |-------|---------|---------|
 | Train | ~4,000  | 30      |
 | Test  | ~1,000  | 30      |
 
-## 🏋️ Training
+## 🏋️ Huấn luyện Mô hình
 
-### Run Training
+### Chạy quá trình Huấn luyện
 
 ```bash
-# Full pipeline (preprocess + train)
+# Chạy toàn bộ pipeline tự động (Tiền xử lý + Train)
 bash train.sh
 
-# Or train only (if data is already preprocessed)
+# Hoặc chỉ chạy script Train (nếu đã tiền xử lý trước đó)
 python scripts/train.py --config configs/train.yaml
 ```
 
-### Training Hyperparameters
+### Siêu tham số Huấn luyện (Hyperparameters)
 
-| Parameter | Value |
+| Tham số | Giá trị |
 |-----------|-------|
 | Base Model | `unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit` |
 | Max Sequence Length | 512 |
@@ -115,11 +115,11 @@ python scripts/train.py --config configs/train.yaml
 | Precision | FP16 |
 | Warmup Steps | 10 |
 
-### Training Approach
+### Phương pháp Huấn luyện
 
-The model is trained using a **generative classification** approach where the classification task is framed as text generation:
+Mô hình được huấn luyện bằng phương pháp **phân loại dạng sinh văn bản**, trong đó bài toán phân loại được mô hình hóa dưới dạng điền từ vào chỗ trống cho một mẫu Prompt cho trước:
 
-```
+```text
 ### Instruction:
 Classify the following banking customer message into the correct intent category.
 Only respond with the intent label, nothing else.
@@ -131,100 +131,96 @@ I am still waiting on my card?
 card_arrival
 ```
 
-## 🔮 Inference
+## 🔮 Suy luận (Dự đoán)
 
-### Using the Python Class
+### Sử dụng Class Python trực tiếp
 
 ```python
 from scripts.inference import IntentClassification
 
-# Initialize (loads model from checkpoint)
+# Khởi tạo (Hệ thống sẽ nạp model từ thư mục checkpoint)
 classifier = IntentClassification("configs/inference.yaml")
 
-# Predict intent for a message
+# Dự đoán intent cho một tin nhắn
 result = classifier("I am still waiting on my card?")
-print(result)  # → "card_arrival"
+print(result)  # → Output: "card_arrival"
 ```
 
-### Command Line Usage
+### Sử dụng qua Dòng lệnh (Command Line)
 
 ```bash
-# Single message prediction
+# Dự đoán 1 câu chỉ định
 bash inference.sh "I want to change my PIN"
 
-# Evaluate on test set
+# Chạy đánh giá (Evaluate) toàn bộ trên tập Test
 bash inference.sh --evaluate
 
-# Interactive mode
+# Chế độ tương tác trực tiếp (Chatbot)
 bash inference.sh --interactive
 
-# Demo with example messages
+# Chạy Demo các câu ví dụ
 bash inference.sh
 ```
 
-### Inference Class Interface
+### Giao diện Class Inference
 
 ```python
 class IntentClassification:
     def __init__(self, model_path):
         """
-        Load configuration, tokenizer, and model checkpoint.
-
-        Args:
-            model_path: Path to inference config YAML file
+        Nạp cấu hình, tokenizer và checkpoint của mô hình LLM.
         """
         pass
 
     def __call__(self, message):
         """
-        Predict the intent label for a customer message.
+        Dự đoán nhãn intent cho một câu tin nhắn của khách hàng.
 
         Args:
-            message: Banking customer message string
-
+            message: Chuỗi tin nhắn ngân hàng
         Returns:
-            predicted_label: The predicted intent label string
+            predicted_label: Chuỗi chứa nhãn intent (Ví dụ: 'activate_my_card')
         """
         return predicted_label
 ```
 
-## 📊 Results
+## 📊 Kết quả
 
-| Metric | Value |
+| Chỉ số | Giá trị |
 |--------|-------|
-| Test Accuracy | TBD (fill after training) |
-| Training Time | ~15-20 min on T4 GPU |
-| Peak GPU Memory | ~8 GB |
+| Độ chính xác (Test Accuracy) | Đang cập nhật (điền sau khi train) |
+| Thời gian huấn luyện | ~15-20 phút trên GPU T4 |
+| Bộ nhớ GPU tối đa | ~8 GB |
 
 ## 🎥 Video Demo
 
-> **Video demonstration link:** [Google Drive Link](YOUR_LINK_HERE)
+> **Link Video demo nghiệm thu:** [Google Drive Link](YOUR_LINK_HERE)
 >
-> The video shows:
-> - How the inference script is executed
-> - Example input messages and predicted intents
-> - Test set accuracy
+> Video bao gồm:
+> - Cách thức chạy mã nguồn inference
+> - Các ví dụ về tin nhắn đầu vào và kết quả mô hình dự đoán ra
+> - Độ chính xác trên tập dữ liệu Test
 
-## ⚙️ Configuration
+## ⚙️ Tùy chỉnh Cấu hình
 
-All hyperparameters can be modified in:
-- `configs/train.yaml` — Training settings
-- `configs/inference.yaml` — Inference settings
+Toàn bộ các tham số đều có thể được sửa đổi tại:
+- `configs/train.yaml` — Cấu hình lúc Huấn luyện
+- `configs/inference.yaml` — Cấu hình lúc Dự đoán
 
-## 📚 References
+## 📚 Tài liệu tham khảo
 
-- [BANKING77 Dataset](https://huggingface.co/datasets/PolyAI/banking77) — PolyAI
-- [Unsloth](https://github.com/unslothai/unsloth) — Fast LLM fine-tuning
+- [Dữ liệu BANKING77](https://huggingface.co/datasets/PolyAI/banking77) — PolyAI
+- [Unsloth Library](https://github.com/unslothai/unsloth) — Fast LLM fine-tuning
 - [LoRA Paper](https://arxiv.org/abs/2106.09685) — Low-Rank Adaptation
-- [Unsloth Notebooks](https://docs.unsloth.ai/get-started/unsloth-notebooks) — Official guides
+- [Unsloth Notebooks](https://docs.unsloth.ai/get-started/unsloth-notebooks) — Hướng dẫn từ Unsloth
 
-## 👤 Author
+## 👤 Tác giả
 
-- **Name**: [Your Name]
-- **Student ID**: [Your ID]
-- **Course**: Applications of Natural Language Processing in Industry
-- **Lecturer**: Dr. Nguyen Hong Buu Long
+- **Họ và tên**: [Tên của bạn]
+- **MSSV**: [Mã số SV của bạn]
+- **Môn học**: Ứng dụng Xử lý ngôn ngữ tự nhiên trong Công nghiệp (Applications of Natural Language Processing in Industry)
+- **Giảng viên**: TS. Nguyễn Hồng Bửu Long
 
 ---
-*University of Science - Vietnam National University Ho Chi Minh City*
+*Trường Đại học Khoa học Tự nhiên - ĐHQG-HCM*
 # finetune-banking77
