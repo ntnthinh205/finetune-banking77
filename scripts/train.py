@@ -174,69 +174,7 @@ def main():
         used_memory_for_lora = round(used_memory - start_gpu_memory, 3)
         print(f"   Peak GPU memory: {used_memory} GB")
         print(f"   GPU memory for training: {used_memory_for_lora} GB")
-    print("\n[6/6] Evaluating on test set and saving model...")
-    FastLanguageModel.for_inference(model)
-    import transformers
-    import warnings
-
-    transformers.logging.set_verbosity_error()
-    warnings.filterwarnings("ignore")
-    correct = 0
-    total = 0
-    predictions = []
-    batch_size = 16
-    id2label = label_map["id2label"]
-    inference_prompt_base = PROMPT_TEMPLATE.split("### Intent:\n")[0] + "### Intent:\n"
-    print("   Running evaluation...")
-    for i in range(0, len(test_df), batch_size):
-        batch = test_df.iloc[i : i + batch_size]
-        for _, row in batch.iterrows():
-            prompt = inference_prompt_base.format(row["text"])
-            inputs = tokenizer(
-                prompt,
-                return_tensors="pt",
-                truncation=True,
-                max_length=model_config["max_seq_length"],
-            ).to(model.device)
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=32,
-                    do_sample=False,
-                    temperature=1.0,
-                    use_cache=True,
-                )
-            generated_text = tokenizer.decode(
-                outputs[0][inputs["input_ids"].shape[1] :],
-                skip_special_tokens=True,
-            )
-            predicted_label = generated_text.strip().split("\n")[0].strip().lower()
-            predicted_label = predicted_label.rstrip(". ,;!?")
-            true_label = row["label_name"]
-            true_label_lower = true_label.strip().lower()
-            is_correct = (predicted_label == true_label_lower) or (
-                true_label_lower in generated_text.lower()
-            )
-            correct += int(is_correct)
-            total += 1
-            predictions.append(
-                {
-                    "text": row["text"],
-                    "true_label": true_label,
-                    "predicted_label": generated_text.strip(),
-                    "correct": is_correct,
-                }
-            )
-        if (i // batch_size + 1) % 5 == 0:
-            print(
-                f"   Processed {min(i + batch_size, len(test_df))}/{len(test_df)} samples..."
-            )
-    accuracy = 100 * correct / total
-    print(f"\n   Test Accuracy: {accuracy:.2f}% ({correct}/{total})")
-    pred_df = pd.DataFrame(predictions)
-    pred_path = os.path.join(output_config["checkpoint_dir"], "test_predictions.csv")
-    pred_df.to_csv(pred_path, index=False)
-    print(f"   Saved predictions to: {pred_path}")
+    print("\n[6/6] Saving model...")
     print("\n   Saving model checkpoint...")
     model.save_pretrained(output_config["checkpoint_dir"])
     tokenizer.save_pretrained(output_config["checkpoint_dir"])
@@ -250,7 +188,6 @@ def main():
         "num_intents": num_labels,
         "train_samples": len(train_df),
         "test_samples": len(test_df),
-        "test_accuracy": accuracy,
         "training_time_seconds": trainer_stats.metrics["train_runtime"],
         "training_loss": trainer_stats.metrics.get("train_loss", None),
         "hyperparameters": {
@@ -274,7 +211,6 @@ def main():
     print("\n" + "=" * 60)
     print("Fine-tuning complete!")
     print(f"   Model saved at: {output_config['checkpoint_dir']}")
-    print(f"   Test Accuracy: {accuracy:.2f}%")
     print("=" * 60)
 
 
