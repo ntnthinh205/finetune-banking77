@@ -32,7 +32,7 @@ banking-intent-unsloth/
 ├── train.sh                  # File shell để tự động hóa quá trình train
 ├── inference.sh              # File shell để chạy thử các chế độ dự đoán
 ├── requirements.txt          # Các thư viện Python cần thiết
-└── README.md                 # File bạn đang đọc
+└── README.md                 
 ```
 
 ## 🚀 Cài đặt & Khởi chạy
@@ -47,7 +47,7 @@ banking-intent-unsloth/
 
 ```bash
 git clone https://github.com/ntnthinh205/finetune-banking77.git
-cd banking-intent-unsloth
+cd finetune-banking77
 ```
 
 ### Bước 2: Cài đặt Thư viện
@@ -55,11 +55,6 @@ cd banking-intent-unsloth
 ```bash
 pip install -r requirements.txt
 ```
-
-> **Dành riêng cho Google Colab**, hãy chạy dòng lệnh sau ở ô code đầu tiên:
-> ```python
-> !pip install unsloth
-> ```
 
 ## 📦 Chuẩn bị Dữ liệu
 
@@ -140,8 +135,8 @@ card_arrival
 ```python
 from scripts.inference import IntentClassification
 
-# Khởi tạo (Hệ thống sẽ nạp model từ thư mục checkpoint)
-classifier = IntentClassification("configs/inference.yaml")
+# Khởi tạo (Hệ thống sẽ nạp model trực tiếp từ thư mục checkpoint)
+classifier = IntentClassification("checkpoints/banking77-intent")
 
 # Dự đoán intent cho một tin nhắn
 result = classifier("I am still waiting on my card?")
@@ -162,6 +157,37 @@ bash inference.sh --interactive
 
 # Chạy Demo các câu ví dụ
 bash inference.sh
+```
+
+**Ví dụ đầu ra (Output Example):**
+
+```text
+$ bash inference.sh "I just noticed my wallet is missing and my physical card was inside. Please block my account immediately!"
+
+Predicting intent for: I just noticed my wallet is missing and my physical card was inside. Please block my account immediately!
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+============================================================
+BANKING77 Intent Detection - Inference
+============================================================
+Loading model from: checkpoints/banking77-intent
+==((====))==  Unsloth 2026.4.8: Fast Qwen2 patching. Transformers: 5.5.0.
+   \\   /|    Tesla T4. Num GPUs = 1. Max memory: 14.563 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.10.0+cu128. CUDA: 7.5. CUDA Toolkit: 12.8. Triton: 3.6.0
+\        /    Bfloat16 = FALSE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+Loading weights: 100% 338/338 [00:00<00:00, 454.70it/s]
+unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit does not have a padding token! Will use pad_token = <|PAD_TOKEN|>.
+Unsloth 2026.4.8 patched 28 layers with 28 QKV layers, 28 O layers and 28 MLP layers.
+Model loaded successfully!
+Number of intent classes: 30
+Device: cuda:0
+
+Input message: I just noticed my wallet is missing and my physical card was inside. Please block my account immediately!
+Predicted intent: lost_or_stolen_card
+Raw model output: lost_or_stolen_card
+Valid label: True
 ```
 
 ### Giao diện Class Inference
@@ -190,18 +216,15 @@ class IntentClassification:
 
 | Chỉ số | Giá trị |
 |--------|-------|
-| Độ chính xác (Test Accuracy) | Đang cập nhật (điền sau khi train) |
-| Thời gian huấn luyện | ~15-20 phút trên GPU T4 |
-| Bộ nhớ GPU tối đa | ~8 GB |
+| Độ chính xác (Test Accuracy) | **95.21%** (952/1002) |
+| Thời gian huấn luyện | 530.0 giây (~8.8 phút) |
+| Lỗi huấn luyện (Training Loss)| 0.6251 |
+| Bộ nhớ GPU tối đa (Peak) | 3.738 GB |
+| Bộ nhớ GPU cho quá trình Train| 2.543 GB |
 
 ## 🎥 Video Demo
 
-> **Link Video demo nghiệm thu:** [Google Drive Link](YOUR_LINK_HERE)
->
-> Video bao gồm:
-> - Cách thức chạy mã nguồn inference
-> - Các ví dụ về tin nhắn đầu vào và kết quả mô hình dự đoán ra
-> - Độ chính xác trên tập dữ liệu Test
+> **Link Video demo nghiệm thu:** [Google Drive Link](https://drive.google.com/file/d/1RrdqeQSLIJ3nnGPtvWm72ITRasLi-ItZ/view?usp=sharing)
 
 ## ⚙️ Tùy chỉnh Cấu hình
 
