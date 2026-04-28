@@ -1,11 +1,3 @@
-# ==============================================================================
-# Training Configuration for BANKING77 Intent Detection
-# ==============================================================================
-# Model: Qwen2.5-1.5B-Instruct (4-bit quantized via Unsloth)
-# Task: Banking intent classification using generative approach
-# ==============================================================================
-
-# --- Model Configuration ---
 model:
   name: "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"
   max_seq_length: 512

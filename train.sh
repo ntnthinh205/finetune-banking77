@@ -1,16 +1,4 @@
 #!/bin/bash
-# ==============================================================================
-# train.sh - Training Pipeline for BANKING77 Intent Detection
-# ==============================================================================
-# This script runs the full training pipeline:
-#   1. Install dependencies
-#   2. Preprocess data (download, sample, split)
-#   3. Fine-tune the model with Unsloth
-#
-# Usage:
-#   bash train.sh
-# ==============================================================================
-
 set -e  # Exit on error
 
 echo "=============================================="

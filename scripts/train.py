@@ -1,21 +1,3 @@
-"""
-train.py - Fine-tuning Intent Detection Model with Unsloth
-==========================================================
-This script fine-tunes a language model for banking intent classification
-using the Unsloth library for optimized LoRA training.
-
-The approach frames classification as a text generation task:
-  Input:  "Classify the banking intent: <message>"
-  Output: "<intent_label>"
-
-Usage:
-    python scripts/train.py --config configs/train.yaml
-
-Reference:
-    - Unsloth official guide: https://docs.unsloth.ai
-    - BANKING77 dataset: https://huggingface.co/datasets/PolyAI/banking77
-"""
-
 import os
 import sys
 import json
@@ -27,39 +9,21 @@ from datasets import Dataset
 
 
 def load_config(config_path: str) -> dict:
-    """Load YAML configuration file."""
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
 
 
-# ==============================================================================
-# Prompt Template
-# ==============================================================================
 PROMPT_TEMPLATE = """### Instruction:
 Classify the following banking customer message into the correct intent category.
 Only respond with the intent label, nothing else.
-
 ### Message:
 {}
-
 ### Intent:
 {}"""
 
 
 def format_prompt(text: str, label_name: str = "", for_inference: bool = False) -> str:
-    """
-    Format a sample into the prompt template.
-
-    Args:
-        text: Customer message text
-        label_name: Intent label name (empty for inference)
-        for_inference: If True, don't include the label (for generation)
-
-    Returns:
-        Formatted prompt string
-    """
     if for_inference:
-        # For inference: prompt without the answer
         return PROMPT_TEMPLATE.split("### Intent:\n")[0] + "### Intent:\n"
     return PROMPT_TEMPLATE.format(text, label_name)
 
@@ -75,42 +39,28 @@ def main():
         help="Path to training config YAML",
     )
     args = parser.parse_args()
-
-    # Load configuration
     config = load_config(args.config)
     model_config = config["model"]
     lora_config = config["lora"]
     train_config = config["training"]
     data_config = config["data"]
     output_config = config["output"]
-
     print("=" * 60)
     print("BANKING77 Intent Detection - Fine-tuning with Unsloth")
     print("=" * 60)
-
-    # =========================================================================
-    # Step 1: Load Model with Unsloth
-    # =========================================================================
     print("\n[1/6] Loading model with Unsloth...")
-
     from unsloth import FastLanguageModel
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_config["name"],
         max_seq_length=model_config["max_seq_length"],
         load_in_4bit=model_config["load_in_4bit"],
-        dtype=None,  # Auto-detect: float16 for T4, bfloat16 for Ampere+
+        dtype=None,
     )
-
     print(f"   Model: {model_config['name']}")
     print(f"   Max seq length: {model_config['max_seq_length']}")
     print(f"   Quantization: {'4-bit' if model_config['load_in_4bit'] else 'None'}")
-
-    # =========================================================================
-    # Step 2: Add LoRA Adapters
-    # =========================================================================
     print("\n[2/6] Adding LoRA adapters...")
-
     model = FastLanguageModel.get_peft_model(
         model,
         r=lora_config["r"],
@@ -122,36 +72,27 @@ def main():
         loftq_config=lora_config["loftq_config"],
         random_state=train_config["seed"],
     )
-
-    # Print trainable parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in model.parameters())
     print(f"   LoRA rank (r): {lora_config['r']}")
     print(f"   LoRA alpha: {lora_config['lora_alpha']}")
     print(f"   Target modules: {lora_config['target_modules']}")
-    print(f"   Trainable params: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
-
-    # =========================================================================
-    # Step 3: Load and Format Dataset
-    # =========================================================================
+    print(
+        f"   Trainable params: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)"
+    )
     print("\n[3/6] Loading and formatting dataset...")
-
     train_df = pd.read_csv(data_config["train_path"])
     test_df = pd.read_csv(data_config["test_path"])
-
-    # Load label mapping
     label_map_path = os.path.join(
         os.path.dirname(data_config["train_path"]), "label_map.json"
     )
     with open(label_map_path, "r") as f:
         label_map = json.load(f)
-
     num_labels = label_map["num_labels"]
     print(f"   Training samples: {len(train_df)}")
     print(f"   Test samples: {len(test_df)}")
     print(f"   Number of intents: {num_labels}")
 
-    # Format training data with prompt template
     def format_dataset(row):
         return {
             "text": format_prompt(row["text"], row["label_name"]) + tokenizer.eos_token,
@@ -162,27 +103,18 @@ def main():
         format_dataset,
         remove_columns=train_dataset.column_names,
     )
-
-    # Show example
     print("\n   Example formatted prompt:")
     print("   " + "-" * 50)
     example = train_dataset[0]["text"]
     for line in example.split("\n"):
         print(f"   {line}")
     print("   " + "-" * 50)
-
-    # =========================================================================
-    # Step 4: Configure Trainer
-    # =========================================================================
     print("\n[4/6] Configuring SFTTrainer...")
-
     from trl import SFTTrainer
     from transformers import TrainingArguments
 
-    # Create output directories
     os.makedirs(output_config["checkpoint_dir"], exist_ok=True)
     os.makedirs(output_config.get("log_dir", "logs"), exist_ok=True)
-
     training_args = TrainingArguments(
         output_dir=output_config["checkpoint_dir"],
         per_device_train_batch_size=train_config["per_device_train_batch_size"],
@@ -202,7 +134,6 @@ def main():
         logging_dir=output_config.get("log_dir", "logs"),
         report_to="none",
     )
-
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -211,16 +142,14 @@ def main():
         max_seq_length=model_config["max_seq_length"],
         args=training_args,
     )
-
-    # Print training info
     print(f"   Batch size: {train_config['per_device_train_batch_size']}")
     print(f"   Gradient accumulation: {train_config['gradient_accumulation_steps']}")
-    print(f"   Effective batch size: {train_config['per_device_train_batch_size'] * train_config['gradient_accumulation_steps']}")
+    print(
+        f"   Effective batch size: {train_config['per_device_train_batch_size'] * train_config['gradient_accumulation_steps']}"
+    )
     print(f"   Epochs: {train_config['num_train_epochs']}")
     print(f"   Learning rate: {train_config['learning_rate']}")
     print(f"   Optimizer: {train_config['optimizer']}")
-
-    # Show GPU memory before training
     if torch.cuda.is_available():
         gpu_stats = torch.cuda.get_device_properties(0)
         start_gpu_memory = round(
@@ -229,68 +158,46 @@ def main():
         max_memory = round(gpu_stats.total_memory / 1024 / 1024 / 1024, 3)
         print(f"\n   GPU: {gpu_stats.name}")
         print(f"   GPU Memory: {start_gpu_memory} GB / {max_memory} GB")
-
-    # =========================================================================
-    # Step 5: Train
-    # =========================================================================
     print("\n[5/6] Starting training...")
     print("=" * 60)
-
     trainer_stats = trainer.train()
-
-    # Print training stats
     print("\n" + "=" * 60)
     print("Training Complete!")
     print("=" * 60)
     print(f"   Training time: {trainer_stats.metrics['train_runtime']:.1f} seconds")
-    print(f"   Training time: {trainer_stats.metrics['train_runtime'] / 60:.1f} minutes")
+    print(
+        f"   Training time: {trainer_stats.metrics['train_runtime'] / 60:.1f} minutes"
+    )
     print(f"   Training loss: {trainer_stats.metrics.get('train_loss', 'N/A')}")
-
     if torch.cuda.is_available():
         used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
         used_memory_for_lora = round(used_memory - start_gpu_memory, 3)
         print(f"   Peak GPU memory: {used_memory} GB")
         print(f"   GPU memory for training: {used_memory_for_lora} GB")
-
-    # =========================================================================
-    # Step 6: Evaluate on Test Set and Save Model
-    # =========================================================================
     print("\n[6/6] Evaluating on test set and saving model...")
-
-    # Switch to inference mode
     FastLanguageModel.for_inference(model)
-    
-    # Mute useless transformers warnings during generation
     import transformers
     import warnings
+
     transformers.logging.set_verbosity_error()
     warnings.filterwarnings("ignore")
-
-    # Evaluate on test set
     correct = 0
     total = 0
     predictions = []
-
-    # Process in batches
     batch_size = 16
     id2label = label_map["id2label"]
-
     inference_prompt_base = PROMPT_TEMPLATE.split("### Intent:\n")[0] + "### Intent:\n"
-
     print("   Running evaluation...")
     for i in range(0, len(test_df), batch_size):
         batch = test_df.iloc[i : i + batch_size]
-
         for _, row in batch.iterrows():
             prompt = inference_prompt_base.format(row["text"])
-
             inputs = tokenizer(
                 prompt,
                 return_tensors="pt",
                 truncation=True,
                 max_length=model_config["max_seq_length"],
             ).to(model.device)
-
             with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
@@ -299,25 +206,19 @@ def main():
                     temperature=1.0,
                     use_cache=True,
                 )
-
-            # Decode only the generated part
             generated_text = tokenizer.decode(
                 outputs[0][inputs["input_ids"].shape[1] :],
                 skip_special_tokens=True,
             )
-
-            # Robust parsing: take first line, strip whitespace and punctuation
-            predicted_label = generated_text.strip().split('\n')[0].strip().lower()
-            predicted_label = predicted_label.rstrip('. ,;!?')
-            
+            predicted_label = generated_text.strip().split("\n")[0].strip().lower()
+            predicted_label = predicted_label.rstrip(". ,;!?")
             true_label = row["label_name"]
             true_label_lower = true_label.strip().lower()
-
-            # Optional: check if true label is contained in the generated text as a fallback
-            is_correct = (predicted_label == true_label_lower) or (true_label_lower in generated_text.lower())
+            is_correct = (predicted_label == true_label_lower) or (
+                true_label_lower in generated_text.lower()
+            )
             correct += int(is_correct)
             total += 1
-
             predictions.append(
                 {
                     "text": row["text"],
@@ -326,33 +227,24 @@ def main():
                     "correct": is_correct,
                 }
             )
-
-        # Progress update
         if (i // batch_size + 1) % 5 == 0:
-            print(f"   Processed {min(i + batch_size, len(test_df))}/{len(test_df)} samples...")
-
+            print(
+                f"   Processed {min(i + batch_size, len(test_df))}/{len(test_df)} samples..."
+            )
     accuracy = 100 * correct / total
-    print(f"\n   ✅ Test Accuracy: {accuracy:.2f}% ({correct}/{total})")
-
-    # Save predictions
+    print(f"\n   Test Accuracy: {accuracy:.2f}% ({correct}/{total})")
     pred_df = pd.DataFrame(predictions)
     pred_path = os.path.join(output_config["checkpoint_dir"], "test_predictions.csv")
     pred_df.to_csv(pred_path, index=False)
     print(f"   Saved predictions to: {pred_path}")
-
-    # Save model
     print("\n   Saving model checkpoint...")
     model.save_pretrained(output_config["checkpoint_dir"])
     tokenizer.save_pretrained(output_config["checkpoint_dir"])
-
-    # Save label map to checkpoint directory too
     checkpoint_label_map_path = os.path.join(
         output_config["checkpoint_dir"], "label_map.json"
     )
     with open(checkpoint_label_map_path, "w") as f:
         json.dump(label_map, f, indent=2)
-
-    # Save training summary
     summary = {
         "model": model_config["name"],
         "num_intents": num_labels,
@@ -372,15 +264,15 @@ def main():
             "max_seq_length": model_config["max_seq_length"],
         },
     }
-    summary_path = os.path.join(output_config["checkpoint_dir"], "training_summary.json")
+    summary_path = os.path.join(
+        output_config["checkpoint_dir"], "training_summary.json"
+    )
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
-
     print(f"   Saved checkpoint to: {output_config['checkpoint_dir']}")
     print(f"   Saved training summary to: {summary_path}")
-
     print("\n" + "=" * 60)
-    print("🎉 Fine-tuning complete!")
+    print("Fine-tuning complete!")
     print(f"   Model saved at: {output_config['checkpoint_dir']}")
     print(f"   Test Accuracy: {accuracy:.2f}%")
     print("=" * 60)

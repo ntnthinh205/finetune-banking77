@@ -1,17 +1,3 @@
-"""
-preprocess_data.py - Data Preparation for BANKING77 Intent Detection
-=====================================================================
-This script:
-1. Downloads the BANKING77 dataset from HuggingFace
-2. Samples a subset of intents (default: 30 out of 77)
-3. Performs text normalization and cleaning
-4. Splits into train/test sets
-5. Saves to CSV files and creates a label mapping JSON
-
-Usage:
-    python scripts/preprocess_data.py --config configs/train.yaml
-"""
-
 import os
 import sys
 import json
@@ -23,16 +9,11 @@ from sklearn.model_selection import train_test_split
 
 
 def load_config(config_path: str) -> dict:
-    """Load YAML configuration file."""
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
 
 
 def get_banking77_label_names() -> list:
-    """
-    Return the 77 intent label names for BANKING77 dataset.
-    These are the human-readable names corresponding to integer labels 0-76.
-    """
     return [
         "activate_my_card",
         "age_limit",
@@ -115,11 +96,6 @@ def get_banking77_label_names() -> list:
 
 
 def normalize_text(text: str) -> str:
-    """
-    Perform basic text normalization.
-    - Strip leading/trailing whitespace
-    - Normalize multiple spaces to single space
-    """
     text = text.strip()
     text = " ".join(text.split())
     return text
@@ -252,7 +228,6 @@ def main():
     for name, count in label_counts.items():
         print(f"   {name}: {count}")
 
-    print("\n✅ Data preprocessing complete!")
     print(f"   - {len(X_train)} training samples")
     print(f"   - {len(X_test)} test samples")
     print(f"   - {len(selected_label_names)} intent classes")

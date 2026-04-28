@@ -1,23 +1,4 @@
 #!/bin/bash
-# ==============================================================================
-# inference.sh - Inference for BANKING77 Intent Detection
-# ==============================================================================
-# This script runs inference using the fine-tuned model.
-#
-# Usage:
-#   # Single message prediction:
-#   bash inference.sh "I am still waiting on my card"
-#
-#   # Evaluate on test set:
-#   bash inference.sh --evaluate
-#
-#   # Interactive mode:
-#   bash inference.sh --interactive
-#
-#   # Demo mode (default):
-#   bash inference.sh
-# ==============================================================================
-
 set -e  # Exit on error
 
 CONFIG="configs/inference.yaml"
