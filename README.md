@@ -85,13 +85,15 @@ Lệnh này sẽ thực hiện các việc:
 
 ## 🏋️ Huấn luyện Mô hình
 
+*Lưu ý: Bạn phải đảm bảo đã hoàn thành việc **Cài đặt thư viện** (pip install) và **Tiền xử lý dữ liệu** ở các bước phía trên trước khi chạy huấn luyện.*
+
 ### Chạy quá trình Huấn luyện
 
 ```bash
-# Chạy toàn bộ pipeline tự động (Tiền xử lý + Train)
+# Chạy file bash
 bash train.sh
 
-# Hoặc chỉ chạy script Train (nếu đã tiền xử lý trước đó)
+# Hoặc chạy trực tiếp script python
 python scripts/train.py --config configs/train.yaml
 ```
 
