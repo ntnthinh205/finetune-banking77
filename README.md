@@ -28,7 +28,6 @@ banking-intent-unsloth/
 │   ├── train.csv             # Dữ liệu huấn luyện (tạo tự động)
 │   ├── test.csv              # Dữ liệu kiểm tra (tạo tự động)
 │   └── label_map.json        # File ánh xạ ID và tên Intent
-├── checkpoints/              # Thư mục lưu mô hình sau khi train
 ├── train.sh                  # File shell để tự động hóa quá trình train
 ├── inference.sh              # File shell để chạy thử các chế độ dự đoán
 ├── requirements.txt          # Các thư viện Python cần thiết
