@@ -221,7 +221,7 @@ Valid label: True
 
 ## 🎥 Video Demo
 
-> **Link Video demo nghiệm thu:** [Google Drive Link](https://drive.google.com/file/d/1RrdqeQSLIJ3nnGPtvWm72ITRasLi-ItZ/view?usp=sharing)
+> **Link Video demo nghiệm thu:** [Google Drive Link](https://drive.google.com/file/d/1r2mISuQRFgZhvHtbOBf-euawgisEOY8-/view?usp=sharing)
 
 ## ⚙️ Tùy chỉnh Cấu hình
 
