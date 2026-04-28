@@ -17,16 +17,13 @@ Only respond with the intent label, nothing else.
 
 class IntentClassification:
     def __init__(self, model_path: str):
-        with open(model_path, "r") as f:
-            self.config = yaml.safe_load(f)
-        checkpoint_dir = self.config["model_checkpoint"]
-        max_seq_length = self.config.get("max_seq_length", 512)
-        load_in_4bit = self.config.get("load_in_4bit", True)
+        checkpoint_dir = model_path
+        max_seq_length = 512
+        load_in_4bit = True
         print(f"Loading model from: {checkpoint_dir}")
-        label_map_path = self.config.get(
-            "label_map_path",
-            os.path.join(checkpoint_dir, "label_map.json"),
-        )
+        label_map_path = os.path.join(checkpoint_dir, "label_map.json")
+        if not os.path.exists(label_map_path):
+            label_map_path = "sample_data/label_map.json"
         with open(label_map_path, "r") as f:
             self.label_map = json.load(f)
         self.id2label = self.label_map["id2label"]
@@ -171,7 +168,12 @@ def main():
     print("=" * 60)
     print("BANKING77 Intent Detection - Inference")
     print("=" * 60)
-    classifier = IntentClassification(args.config)
+
+    with open(args.config, "r") as f:
+        config = yaml.safe_load(f)
+    checkpoint_dir = config["model_checkpoint"]
+
+    classifier = IntentClassification(checkpoint_dir)
     if args.message:
         print(f"\nInput message: {args.message}")
         result = classifier(args.message)

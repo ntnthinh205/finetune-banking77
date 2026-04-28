@@ -46,7 +46,7 @@ banking-intent-unsloth/
 ### Bước 1: Clone Repository
 
 ```bash
-git clone https://github.com/<YOUR_USERNAME>/banking-intent-unsloth.git
+git clone https://github.com/ntnthinh205/finetune-banking77.git
 cd banking-intent-unsloth
 ```
 
@@ -218,9 +218,9 @@ Toàn bộ các tham số đều có thể được sửa đổi tại:
 
 ## 👤 Tác giả
 
-- **Họ và tên**: [Tên của bạn]
-- **MSSV**: [Mã số SV của bạn]
-- **Môn học**: Ứng dụng Xử lý ngôn ngữ tự nhiên trong Công nghiệp (Applications of Natural Language Processing in Industry)
+- **Họ và tên**: Nguyễn Trần Ngọc Thịnh
+- **MSSV**: 23120362
+- **Môn học**: Ứng dụng Xử lý ngôn ngữ tự nhiên trong doanh nghiệp
 - **Giảng viên**: TS. Nguyễn Hồng Bửu Long
 
 ---
