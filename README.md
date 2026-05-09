@@ -221,8 +221,8 @@ Valid label: True
 
 ## 🎥 Video Demo
 
-> **Link Video demo nghiệm thu:** [Google Drive Link](https://drive.google.com/file/d/1r2mISuQRFgZhvHtbOBf-euawgisEOY8-/view?usp=sharing)
-> **Link checkpoints:** [Checkpoints](https://drive.google.com/drive/folders/1W9Zn8tF4EzKTyMe2bvg1Rkoy9CirV9YN?usp=sharing)
+- **Link Video demo nghiệm thu:** [Video demo](https://drive.google.com/file/d/1r2mISuQRFgZhvHtbOBf-euawgisEOY8-/view?usp=sharing)
+- **Link checkpoints:** [Checkpoints](https://drive.google.com/drive/folders/1W9Zn8tF4EzKTyMe2bvg1Rkoy9CirV9YN?usp=sharing)
 
 ## ⚙️ Tùy chỉnh Cấu hình
 
