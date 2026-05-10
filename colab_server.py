@@ -5,12 +5,12 @@ import threading
 import time
 
 # Update these paths based on where you cloned the repo in Colab
-PROJECT_PATH = '/content/intent_model' # Adjust this to your repo name
+PROJECT_PATH = '/content/finetune-banking77' # Adjust this to your repo name
 sys.path.append(f"{PROJECT_PATH}/scripts")
 
-import intent_pb2
-import intent_pb2_grpc
-from inference import IntentClassification
+from protos import intent_pb2
+from protos import intent_pb2_grpc
+from scripts.inference import IntentClassification
 
 class IntentServer(intent_pb2_grpc.IntentServiceServicer):
     def __init__(self):
