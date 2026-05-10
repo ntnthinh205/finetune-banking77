@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import intent_pb2 as intent__pb2
+from . import intent_pb2 as intent__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
