@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import intent_pb2 as intent__pb2
+from . import intent_service_pb2 as intent__service__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in intent_pb2_grpc.py depends on'
+        + ' but the generated code in intent_service_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -34,17 +34,17 @@ class IntentServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.PredictIntent = channel.unary_unary(
-                '/intent.IntentService/PredictIntent',
-                request_serializer=intent__pb2.IntentRequest.SerializeToString,
-                response_deserializer=intent__pb2.IntentResponse.FromString,
+        self.IntentRecognizer = channel.unary_unary(
+                '/intent_classify.v1.IntentService/IntentRecognizer',
+                request_serializer=intent__service__pb2.IntentRequest.SerializeToString,
+                response_deserializer=intent__service__pb2.IntentResponse.FromString,
                 _registered_method=True)
 
 
 class IntentServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def PredictIntent(self, request, context):
+    def IntentRecognizer(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,16 +53,16 @@ class IntentServiceServicer(object):
 
 def add_IntentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'PredictIntent': grpc.unary_unary_rpc_method_handler(
-                    servicer.PredictIntent,
-                    request_deserializer=intent__pb2.IntentRequest.FromString,
-                    response_serializer=intent__pb2.IntentResponse.SerializeToString,
+            'IntentRecognizer': grpc.unary_unary_rpc_method_handler(
+                    servicer.IntentRecognizer,
+                    request_deserializer=intent__service__pb2.IntentRequest.FromString,
+                    response_serializer=intent__service__pb2.IntentResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'intent.IntentService', rpc_method_handlers)
+            'intent_classify.v1.IntentService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('intent.IntentService', rpc_method_handlers)
+    server.add_registered_method_handlers('intent_classify.v1.IntentService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -70,7 +70,7 @@ class IntentService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def PredictIntent(request,
+    def IntentRecognizer(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,9 +83,9 @@ class IntentService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/intent.IntentService/PredictIntent',
-            intent__pb2.IntentRequest.SerializeToString,
-            intent__pb2.IntentResponse.FromString,
+            '/intent_classify.v1.IntentService/IntentRecognizer',
+            intent__service__pb2.IntentRequest.SerializeToString,
+            intent__service__pb2.IntentResponse.FromString,
             options,
             channel_credentials,
             insecure,
